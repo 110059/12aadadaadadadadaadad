@@ -1,0 +1,283 @@
+Angular6 VS AngularJS
+
+1 - AngularJS is MVC based architecture. no angular CI. in Angular8 angular CI added.
+Central component that expresses the application's behavior and manages its data, logic, and rules. 
+Controllers and $scope were replaced by components and directives.
+
+
+2 - AngularJS is controller based, Angular2+ components based.
+3 -Angular JS syntax ng-repeat,ng-model Angular8 ngFor, ngModel
+4  -Angualr 8 dynamic loading, reactive programming
+5 - RXJS, typescript, es6 in Angular8. AngularJS is written in JavaScript. 
+6 - Mobile support
+7 - Speed improvement by change detection mechanism
+---------------------------------------------------------------------------
+>Angular Resolver
+
+import { Injectable } from '@angular/core';
+import { Resolve } from '@angular/router';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/observable/of';
+import 'rxjs/add/operator/delay';
+@Injectable()
+export class HnResolver implements Resolve<Observable<string>> {
+  constructor() {}
+  resolve() {
+    return Observable.of('Hello Alligator!').delay(2000);
+  }
+}
+
+>in Router
+const routes: Routes = [
+  { path: '', pathMatch: 'full', component: HomeComponent },
+  {
+    path: 'top',
+    component: TopComponent,
+    resolve: { message: HnResolver }
+  }
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule],
+  providers: [
+    HnResolver
+  ]
+})
+
+>access in component
+
+import { Component, OnInit } from '@angular/core';
+
+import { ActivatedRoute } from '@angular/router';
+
+@Component({ ... })
+export class TopComponent implements OnInit {
+  data: any;
+
+  constructor(private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    this.data = this.route.snapshot.data;
+  }
+}
+
+-------------------------------------------
+Reactive form
+
+> template
+<form [formGroup]="userForm" (submit)="saveUser()">
+  <label for="name">Name</label>
+  <input formControlName="name" id="name" #name="ngControl" />
+  <div *ngIf="name.touched && name.hasError('required')">Required</div>
+
+  <label for="email">Email</label>
+  <input formControlName="email" id="email" #email="ngControl" />
+  <div *ngIf="email.touched && email.hasError('email')">Invalid</div>
+
+  <label for="profile">Profile Description</label>
+  <input formControlName="email" id="profile" #profile="ngControl" />
+  <div *ngIf="profile.touched && profile.hasError('required')">Invalid</div>
+
+  <button type="submit" [disabled]="!userForm.valid">Submit</button>
+</form>
+
+> in component
+
+import { Component } from '@angular/core';
+import { FormBuilder, Validators } from '@angular/forms';
+import { ValidationService } from 'app/validation.service';
+
+@Component({
+  selector: 'demo-app',
+  templateUrl: 'app/app.component.html'
+})
+export class AppComponent {
+  userForm: any;
+
+  constructor(private formBuilder: FormBuilder) {
+    this.userForm = this.formBuilder.group({
+      name: ['', Validators.required],
+      email: ['', [Validators.required, ValidationService.emailValidator]],
+      profile: ['', [Validators.required, Validators.minLength(10)]]
+    });
+  }
+
+  saveUser() {
+    if (this.userForm.dirty && this.userForm.valid) {
+      alert(
+        `Name: ${this.userForm.value.name} Email: ${this.userForm.value.email}`
+      );
+    }
+  }
+}
+---------------------------------------------
+
+useClass >  overwrite the actual service, factory or value
+
+@Injectable
+export class TestService2 {
+  sayHello() {
+    console.log(`From TestService2 --> Hello`);
+  }
+}
+---
+@Injectable({
+  providedIn: 'root',
+  useClass: TestService2 // <-- add this line
+})
+export class TestService {
+  sayHello() {
+    console.log(`From TestService --> Hello`);
+  }
+}
+
+adding TestService  in component will print `From TestService2 --> Hello`
+if remove useClass then will print `From TestService --> Hello`
+
+
+--- useFactory---
+
+export class TestService3 {
+  sayHello() {
+    console.log(`From TestService3 --> Hello`);
+  }
+}
+
+export function xyzFactory() {   
+  return new TestService3();
+}
+
+export class TestService2 {
+  // ...
+}
+
+@Injectable({
+  providedIn: 'root',
+  useFactory: xyzFactory
+})
+export class TestService {
+  sayHello() {
+    console.log(`From TestService --> Hello`);
+  }
+}
+
+output: From TestService3 --> Hello
+----------
+adding dependency
+
+@Injectable({
+  providedIn: 'root',
+  useFactory: xyzFactory,
+  deps: [HttpClient]
+})
+-------
+useValue
+@Injectable({
+  providedIn: 'root',
+  useValue: {
+    sayHello: function() {       //provide value from here only
+      console.log('whuuuut??');
+    }
+  }
+})
+-------------------------------
+make service Singleon. 2 mrtthod to do it
+
+1 - Set the providedIn property of the @Injectable() to "root".
+2 - Include the service in the AppModule or in a module that is only imported by the AppModule
+
+------------------------------
+angular 14
+npm install -g @angular/cli
+
+>>create new angular
+npm init @angular myapp
+or
+ng new my-app
+
+cd myapp
+npm install
+ng serve
+ng serve --open      opens your browser to http://localhost:4200/
+ng serve --port 4201
+
+>>prod buid
+ng build
+4 file created
+main.e19ddbf3c8963af7.js - your application code and everything you have imported    
+polyfills.91429114dac5da17.js   - workaround scripts that ensure that your recent codes (which use the new browser features) do not break in the old browsers
+runtime.cbd4ec365a88fdc5.js  - utility code used by Webpack to load code at runtime
+styles.ef46db3751d8e999.css
+vendor.js: third-party code that your application depends on
+
+karma - test runner 
+Jasmine - is the default test framework used with Angular. 
+
+--------
+host directives.
+You apply directives to a component by adding a hostDirectives property to a component's decorator.
+Directives used in hostDirectives must be standalone: true.
+
+@Component({
+  selector: 'admin-menu',
+  template: 'admin-menu.html',
+  hostDirectives: [MenuBehavior],
+})
+export class AdminMenu { }
+-----------
+DI dependancy injection:
+a design pattern and mechanism for creating and delivering some parts of an application to other parts of an application that require them.
+in Angular, dependencies are typically services.
+add the @Injectable decorator to show that the class can be injected.
+@Injectable()
+class HeroService {}
+===
+At the Component level, using the providers field of the @Component decorator.
+@Component({
+  selector: 'hero-list',
+  template: '...',
+  providers: [HeroService]
+})
+class HeroListComponent {}
+====
+@Injectable({
+  providedIn: 'root',  'root', means that the service is visible throughout the application.
+})
+------------
+The standalone flag:
+Components, directives, and pipes can now be marked as standalone: true. Angular classes marked as standalone do not need to be declared in an "NgModule"
+(the Angular compiler will report an error if you try).
+a standalone component, can directly import another standalone component.
+
+@Component({
+  standalone: true,
+  selector: 'photo-gallery',
+  imports: [ImageGridComponent],
+  template: `
+--------------
+Change detection starategy:
+
+disable change detection strateggy.
+@Component({
+  selector: 'app-root',
+  template: `Number of ticks: {{numberOfTicks}}`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+
+ChangeDetectionStrategy.Default,  always check
+--------------
+zone.js
+Zone is a mechanism for intercepting and keeping track of asynchronous work.
+to keep track of all async operations / async APIs like setTimeout, setInterval, the promise API, etc. to keep track of all async operations.
+For each async operation, Zone.js creates a task
+
+NgZone. There is only one Angular Zone and change detection is triggered exclusively for async operations which run in the NgZone.
+--------------
+different ways to handle the asynchronous code in NodeJS
+Callbacks
+Promises
+Async/Await
+-----------------
+test code
+angular 6 ,, jasmine, karma(runner. other mocha)
